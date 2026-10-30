@@ -1,0 +1,89 @@
+name: Build Semua APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "WB Prediction 1"
+            id: com.wongbagus.app1
+            url: https://adinealif-byte.github.io/WB-PREDICTION-/
+            file: WB-adinealif
+          - name: "WB Scenangka"
+            id: com.wongbagus.app2
+            url: https://bototomart787-png.github.io/Scenangka/
+            file: WB-scenangka
+          - name: "WB Prediction 3"
+            id: com.wongbagus.app3
+            url: https://wgus543-hub.github.io/WB-PREDICTION-/
+            file: WB-wgus543
+          - name: "WB Prediction 4"
+            id: com.wongbagus.app4
+            url: https://kjago7822.github.io/WB-PREDICTION-/
+            file: WB-kjago7822
+          - name: "WB Scen"
+            id: com.wongbagus.app5
+            url: https://paitoangka1234-cpu.github.io/WB-scen/
+            file: WB-scen
+          - name: "WB Prediction 6"
+            id: com.wongbagus.app6
+            url: https://kpps33040420090144-creator.github.io/WB-PREDICTION-/
+            file: WB-kpps
+          - name: "WB Prediction 7"
+            id: com.wongbagus.app7
+            url: https://mamakeavif-star.github.io/WB-PREDICTION-/
+            file: WB-mamakeavif
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Siapkan project Capacitor
+        run: |
+          mkdir app && cd app
+          mkdir www
+          echo '<!doctype html><meta charset="utf-8"><title>Loading</title>' > www/index.html
+          npm init -y
+          npm i @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          cat > capacitor.config.json <<EOF
+          {
+            "appId": "${{ matrix.id }}",
+            "appName": "${{ matrix.name }}",
+            "webDir": "www",
+            "server": {
+              "url": "${{ matrix.url }}",
+              "cleartext": false,
+              "allowNavigation": ["*.github.io"]
+            }
+          }
+          EOF
+          npx cap add android
+          npx cap sync android
+
+      - name: Build debug APK
+        working-directory: app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Rename APK
+        run: cp app/android/app/build/outputs/apk/debug/app-debug.apk "${{ matrix.file }}.apk"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.file }}
+          path: ${{ matrix.file }}.apk
